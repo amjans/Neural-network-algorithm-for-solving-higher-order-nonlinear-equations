@@ -1,0 +1,29 @@
+import tensorflow as tf
+
+#POLYNOMIAL LOSS
+def polynomial_loss(x, a):
+    n = tf.shape(a[0])
+    x_powers = tf.math.pow(tf.cast(x[0][0], tf.float32), tf.cast(tf.range(n-1, -1, -1), tf.float32))
+    loss = tf.reduce_sum(tf.cast(a, tf.float32) * x_powers)
+    return tf.abs(loss)
+
+#NEURAL NETWORK MODEL
+model = tf.keras.Sequential([tf.keras.layers.Dense(3*n, activation='relu'),
+                             tf.keras.layers.Dense(2*n, activation='relu'),
+                             tf.keras.layers.Dense(1)])
+optimizer= tf.keras.optimizers.Adamax(learning_rate=0.05)
+model.compile(optimizer=optimizer, loss= custom_loss)
+
+epochs = 2000
+tol = 10**(-5)
+
+for epoch in range(epochs):
+  with tf.GradientTape() as tape:
+            prediction = model(a)
+            loss = custom_loss(prediction, coeffs)
+  if loss < tol:
+    break
+
+  gradients = tape.gradient(loss, model.trainable_variables)
+
+  optimizer.apply_gradients(zip(gradients, model.trainable_variables))
