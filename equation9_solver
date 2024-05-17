@@ -1,0 +1,65 @@
+import numpy as np
+import tensorflow as tf
+
+losses = []
+def custom_loss(x):
+    loss_equation = 0
+    N = tf.shape(x)[1]
+    n=1
+    while n<N: #Tensorflow faster with while instead of for?
+        summation_1 = tf.reduce_sum([(omega / (x[0][n] - i/e_single)) for i in range(1, j)])  #First summation in eqv4, with hydrogen energies
+        summation_2 = tf.reduce_sum([(omega / (x[0][n] - x[0][i])) for i in range(1,N) if n != i]) #Second summation in eqv4
+        loss_equation += (1 + G * summation_1 - 2 * G * summation_2)**2  #Eqv 4
+        n += 1
+    return tf.constant(loss_equation + 0*tf.abs(tf.reduce_sum(x[0])))
+
+def equation(x):
+    loss_equation = 0
+    N = tf.shape(x)[1]
+    n=0
+    while n<N: #Tensorflow faster with while instead of for?
+        summation_1 = tf.reduce_sum([(omega / (x[0][n] - i/e_single)) for i in range(1, j)])  #First summation in eqv4
+        summation_2 = tf.reduce_sum([(omega / (x[0][n] - x[0][i])) for i in range(0,N-1) if n != i]) #Second summation in eqv4
+        loss_equation += (1 + G * summation_1 - 2 * G * summation_2)**2  #Eqv 4
+        n += 1
+    return loss_equation
+
+#Constants
+G = 0.03
+omega = 1
+N = 6
+e_single = 10 #Single particle energy used in Chongs paper, e_j = i/10MeV, should we use Mega?
+j = 2*N
+delta = G * 5
+
+
+x = []
+for n in range(1,j+1):
+    x.append((2*n/10 - G))
+x_initial = tf.constant([x])
+
+model = tf.keras.Sequential([tf.keras.layers.Dense(j, activation='mish'),
+                             tf.keras.layers.Dense(j, activation='softmax'),
+                             tf.keras.layers.Dense(j)])
+optimizer= tf.keras.optimizers.Adamax(learning_rate=0.01)
+model.compile(optimizer=optimizer, loss= custom_loss3)
+
+epochs = 10000
+tol = 0.01
+r = 0
+for epoch in range(epochs):
+  r = r+1
+  with tf.GradientTape() as tape:
+            prediction = model(x_initial)
+            loss = custom_loss3(prediction)
+            losses.append(loss)
+            print(loss)
+            print(r)
+            eq2 = tf.abs(custom_loss3(prediction))
+
+  if eq2 < tol:
+    break
+
+  gradients = tape.gradient(loss, model.trainable_variables)
+
+  optimizer.apply_gradients(zip(gradients, model.trainable_variables))
