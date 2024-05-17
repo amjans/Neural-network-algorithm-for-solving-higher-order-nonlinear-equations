@@ -1,0 +1,72 @@
+import numpy as np
+import tensorflow as tf
+
+#CONSTANTS
+N = 4 #number of unknown
+G = 0.03
+omega = 1
+j = 8 #Number of energies (first summation) (if j = 3, the energies are e_0, e_1, e_2)
+e_single = 10 #Single particle energy used in Chongs paper, e_j = i/10MeV
+delta = 0.01
+
+epochs = 50000
+
+
+#INITIAL GUESS
+x = []
+for n in range(0,N):
+    x.append(2*n/e_single - G)
+x = tf.constant([x])
+print(x)
+
+def chongs_loss(x):
+    loss_equation = 0
+    n=0
+    while n<N:
+        summation_1 = tf.reduce_sum([(omega / (x[0][n] - i/e_single)) for i in range(0, j)])  #First summation in eqv4
+        summation_2 = tf.reduce_sum([(omega / (x[0][n] - x[0][i])) for i in range(0,N) if n != i]) #Second summation in eqv4
+        loss_equation += (1 + G * summation_1 - 2 * G * summation_2)**2  #Eqv 4
+        n += 1
+    loss = loss_equation  + 0 * tf.reduce_sum(x[0])
+    return loss
+
+def equation(x):
+    loss_equation = 0
+    n = 0
+    while n < N:
+        summation_1 = tf.reduce_sum([(omega / (x[0][n] - i / e_single)) for i in range(0, j)])
+        summation_2 = tf.reduce_sum([(omega / (x[0][n] - x[0][i])) for i in range(0, N) if n != i])
+        equ = (1 + G * summation_1 - 2 * G * summation_2) ** 2
+        #print(equ)
+        if equ > delta:
+            return False
+        n += 1
+    return True
+
+#NEURAL NETWORK
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(3*N, activation='mish'),
+    tf.keras.layers.Dense(2*N, activation='mish'),
+    tf.keras.layers.Dense(N, activation='linear')
+])
+
+
+optimizer = tf.keras.optimizers.Adamax(learning_rate=0.005)
+model.compile(optimizer=optimizer, loss=chongs_loss)
+
+def train_model(x):
+    for epoch in range(epochs):
+        with tf.GradientTape() as tape:
+            prediction = model(x, training=True)
+            loss = chongs_loss(prediction)
+
+            check = equation(prediction)
+
+            if check:
+                break
+
+
+        gradients = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+
+
