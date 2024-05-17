@@ -1,0 +1,1 @@
+# Neural-network-algorithm-for-solving-higher-order-nonlinear-equations
